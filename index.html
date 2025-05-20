@@ -1,0 +1,327 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+      }
+
+      .container {
+        display: flex;
+        flex-direction: row;
+        height: 100vh;
+      }
+
+      .sidebar {
+        width: 300px;
+        overflow-y: auto;
+        background-color: #f4f4f4;
+        padding: 1rem;
+        border-right: 1px solid #ddd;
+      }
+
+      .sidebar h2 {
+        margin-top: 0;
+      }
+
+      .location-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .location-list li {
+        padding: 10px;
+        border-bottom: 1px solid #ddd;
+        cursor: pointer;
+        transition: background 0.3s;
+      }
+
+      .location-list li:hover {
+        background-color: #e0e0e0;
+      }
+
+      #map {
+        flex: 1;
+        height: 100%;
+      }
+
+      @media (max-width: 768px) {
+        .container {
+          flex-direction: column;
+        }
+
+        .sidebar {
+          width: 100%;
+          height: 200px;
+          border-right: none;
+          border-bottom: 1px solid #ddd;
+        }
+
+        #map {
+          height: calc(100vh - 200px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="sidebar">
+        <h2>Furniture Locations</h2>
+        <ul class="location-list" id="locationList"></ul>
+      </div>
+      <div id="map"></div>
+    </div>
+    <script>
+      let map;
+      const locations = [
+        { lat: 22.52882, lng: 88.2623319, title: "S .NIGAR FURNITURE" },
+        { lat: 22.5238685, lng: 88.2711456, title: "Nigar Fancy Furniture" },
+        { lat: 22.61265, lng: 88.4993515, title: "ROSHNI FURNITURE" },
+        { lat: 22.7147045, lng: 88.502745, title: "RAMKRISHNA FURNITURE" },
+        { lat: 22.683185, lng: 88.7764, title: "RAJASTHAN MARBLE" },
+        { lat: 22.5925809, lng: 88.2415422, title: "SAIKAT FURNITURE" },
+        { lat: 23.185952, lng: 88.5757064, title: "Shree Guru Enterprise" },
+        { lat: 24.1716867, lng: 87.7906163, title: "Shanti Outlet" },
+        { lat: 23.5889979, lng: 87.2066554, title: "VASUDEV ENTERPRISE" },
+        { lat: 22.6842101, lng: 88.4625814, title: "ROSE FURNITURE" },
+        {
+          lat: 23.22284586409248,
+          lng: 87.08534840943405,
+          title: "M/S BENGAL FURNITECH",
+        },
+        {
+          lat: 23.7937545,
+          lng: 87.3743435,
+          title: "DEEP AND JEET FURNITURE",
+        },
+        { lat: 24.1033746, lng: 88.2553962, title: "Rounak Enterprise" },
+        {
+          lat: 22.299109204053803,
+          lng: 87.99658468470949,
+          title: "NEW MUNMUN STEEL FURNITURE",
+        },
+        {
+          lat: 24.1686743,
+          lng: 88.3149798,
+          title: "Ishan furniture & electronics",
+        },
+        {
+          lat: 22.8992448,
+          lng: 88.5393476,
+          title: "Mangal Maya Steel Furniture and Electronics",
+        },
+        {
+          lat: 23.061792596105413,
+          lng: 88.76312242654137,
+          title: "Laxmi Furniture",
+        },
+        { lat: 22.484279, lng: 88.374161, title: "DREAM WOOD FURNITURE" },
+        { lat: 23.0376145, lng: 88.8273524, title: "Monalisha Furniture" },
+        { lat: 22.6842178, lng: 88.4625697, title: "NEW BAPI FURNITURE" },
+        { lat: 22.88349588, lng: 88.4399255, title: "Monalisa" },
+        {
+          lat: 25.005408309549956,
+          lng: 88.13501600295693,
+          title: "PANCHALI FURNITURE",
+        },
+        {
+          lat: 23.619484808722785,
+          lng: 87.11390053843739,
+          title: "MAHAMAYA FURNITURE",
+        },
+        {
+          lat: 26.87961624305704,
+          lng: 88.90746075201446,
+          title: "Luxury Home Furniture",
+        },
+        {
+          lat: 22.902138295246967,
+          lng: 88.41837488219159,
+          title: "Furnistyle",
+        }, //
+        {
+          lat: 22.783168058018106,
+          lng: 88.64502875307325,
+          title: "Anushka Furniture",
+        }, //
+        {
+          lat: 22.36959967711778,
+          lng: 88.26747468636994,
+          title: "Emon Enterprise",
+        },
+        {
+          lat: 23.559286148281085,
+          lng: 87.27623136543183,
+          title: "DAMODAR FURNITURE",
+        },
+        {
+          lat: 22.730698169317485,
+          lng: 88.37310742906388,
+          title: "Sarada Enterprise",
+        }, //
+        {
+          lat: 22.552999464443584,
+          lng: 88.25954220306306,
+          title: "Furniture House",
+        }, //
+        { lat: 23.559138066485083, lng: 87.31328587995714, title: "SAJAWAT" },
+        {
+          lat: 22.605459105778127,
+          lng: 88.68183881338925,
+          title: "LORDS FURNITURE",
+        },
+        {
+          lat: 22.36860983633079,
+          lng: 88.42976631109383,
+          title: "SONALI FURNITURE",
+        },
+        { lat: 0, lng: 0, title: "MADONA FURNITURE" },
+        {
+          lat: 23.783656174669115,
+          lng: 88.10563085025018,
+          title: "National Furniture",
+        },
+        {
+          lat: 23.24097149022083,
+          lng: 87.87628624329587,
+          title: "National Traders",
+        },
+        {
+          lat: 22.97442593343083,
+          lng: 88.43600115701499,
+          title: "Maa Tara Interior",
+        },
+        {
+          lat: 22.962601166348392,
+          lng: 88.42685588570826,
+          title: "FURNITURE GALLERY PREMIUM",
+        },
+        {
+          lat: 23.237606715058746,
+          lng: 88.43790570788543,
+          title: "Maa Mira Enterprise",
+        },
+        {
+          lat: 22.897932350418,
+          lng: 87.65575920624414,
+          title: "KALIMATA ENTERPRISE",
+        },
+        {
+          lat: 24.599152312728194,
+          lng: 88.03988608591284,
+          title: "GRIHOSAJ FURNITURE",
+        }, //
+        {
+          lat: 22.930141705739015,
+          lng: 88.39927944062626,
+          title: "SANGINEE FURNITURE",
+        },
+        {
+          lat: 23.925933376577063,
+          lng: 88.25768104865334,
+          title: "SUBHO BEDING HOUSE",
+        },
+        {
+          lat: 22.74754216029391,
+          lng: 88.18377157857962,
+          title: "M A Furniture",
+        },
+        {
+          lat: 22.701940173352114,
+          lng: 88.75643367520635,
+          title: "RAJASTHAN MARBLE",
+        },
+        {
+          lat: 22.88996035623204,
+          lng: 88.37877908259027,
+          title: "ROSE FURNITURE",
+        },
+        {
+          lat: 24.10329373710289,
+          lng: 88.25619395069197,
+          title: "Rounak Enterprise",
+        },
+        {
+          lat: 22.50964581593828,
+          lng: 88.61692285971401,
+          title: "NEW BAPI FURNITURE",
+        },
+        {
+          lat: 26.123805199990134,
+          lng: 89.464490611638648,
+          title: "M/S. S.K. TRADERS",
+        },
+        {
+          lat: 23.73655983052315,
+          lng: 86.81482114634484,
+          title: "BABA FURNITURE",
+        }, //
+        { lat: 0, lng: 0, title: "Shree Guru Enterprise" },
+        {
+          lat: 22.3738932425382,
+          lng: 88.42427905014638,
+          title: "LUXURY LIVING ONE STOP SOLUTION",
+        },
+        {
+          lat: 22.473220477990203,
+          lng: 88.36393309608148,
+          title: "WOODEN WORLD",
+        },
+        {
+          lat: 23.873923777170084,
+          lng: 88.08059279945931,
+          title: "Sekh Enterprise",
+        },
+        {
+          lat: 22.895867089716205,
+          lng: 87.79132034890591,
+          title: "POPULAR STEEL FURNITURE",
+        },
+        { lat: 0, lng: 0, title: "Furniture Point" },
+      ];
+
+      function initMap() {
+        map = new google.maps.Map(document.getElementById("map"), {
+          zoom: 5,
+          center: { lat: 20.5937, lng: 78.9629 }, // Centered on India
+        });
+
+        const locationListEl = document.getElementById("locationList");
+
+        locations.forEach((loc, index) => {
+          // Skip invalid coordinates (optional)
+          if (loc.lat === 0 && loc.lng === 0) return;
+
+          const marker = new google.maps.Marker({
+            position: { lat: loc.lat, lng: loc.lng },
+            map,
+            title: loc.title,
+          });
+
+          const li = document.createElement("li");
+          li.textContent = loc.title;
+          li.addEventListener("click", () => {
+            map.setZoom(14);
+            map.panTo(marker.getPosition());
+          });
+
+          locationListEl.appendChild(li);
+        });
+      }
+    </script>
+
+    <!-- Load Google Maps API (replace YOUR_API_KEY) -->
+    <script
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAirr5KbRL7NNxnDNlx5lEOlpYOrcHm7DI&callback=initMap"
+      async
+      defer
+    ></script>
+  </body>
+</html>

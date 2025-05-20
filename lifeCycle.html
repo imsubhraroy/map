@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            background: #f0f2f5;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 2rem;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+
+        @media (min-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr 350px;
+            }
+        }
+
+        .tree {
+            --spacing: 2rem;
+            --radius: 12px;
+        }
+
+        .tree li {
+            display: block;
+            position: relative;
+            padding-left: calc(2 * var(--spacing) - var(--radius) - 2px);
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .tree ul {
+            margin-left: calc(var(--radius) - var(--spacing));
+            padding-left: 0;
+        }
+
+        .tree ul li {
+            border-left: 2px solid #cbd5e0;
+        }
+
+        .tree ul li:last-child {
+            border-color: transparent;
+        }
+
+        .tree ul li::before {
+            content: '';
+            display: block;
+            position: absolute;
+            top: calc(var(--spacing) / -2);
+            left: -2px;
+            width: calc(var(--spacing) + 2px);
+            height: calc(var(--spacing) + 2px);
+            border: 2px solid #cbd5e0;
+            border-top-color: transparent;
+            border-right-color: transparent;
+            border-bottom-color: transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tree li div {
+            background: white;
+            padding: 1rem 1.5rem;
+            border-radius: var(--radius);
+            border: 2px solid transparent;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: var(--spacing);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            font-weight: 500;
+            color: #2d3748;
+        }
+
+        .tree div:hover {
+            transform: translateX(5px);
+            background: #ffffff;
+            border-color: #4299e1;
+            box-shadow: 0 4px 6px rgba(66, 153, 225, 0.1);
+        }
+
+        .status {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            margin-right: 12px;
+            position: relative;
+        }
+
+        .status::after {
+            content: '';
+            position: absolute;
+            top: -3px;
+            left: -3px;
+            right: -3px;
+            bottom: -3px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 0.8;
+            }
+            50% {
+                transform: scale(1.5);
+                opacity: 0;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 0;
+            }
+        }
+
+        .status-completed {
+            background: #48bb78;
+        }
+
+        .status-completed::after {
+            border: 2px solid #48bb78;
+        }
+
+        .status-pending {
+            background: #ecc94b;
+        }
+
+        .status-pending::after {
+            border: 2px solid #ecc94b;
+        }
+
+        .status-processing {
+            background: #4299e1;
+        }
+
+        .status-processing::after {
+            border: 2px solid #4299e1;
+        }
+
+        .time-info {
+            font-size: 0.875rem;
+            color: #718096;
+            margin-left: auto;
+        }
+
+        .order-summary {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 2rem;
+            height: fit-content;
+        }
+
+        .summary-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #f0f2f5;
+        }
+
+        .order-number {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .estimated-delivery {
+            background: #f7fafc;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+        }
+
+        .delivery-date {
+            font-size: 1.125rem;
+            color: #2d3748;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .delivery-info {
+            color: #718096;
+            font-size: 0.875rem;
+        }
+
+        .progress-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: #f7fafc;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #718096;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #4299e1;
+            width: 45%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+            .tree {
+                --spacing: 1.5rem;
+            }
+            .time-info {
+                display: none;
+            }
+            .order-summary {
+                position: static;
+                margin-bottom: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <ul class="tree">
+            <!-- Previous tree structure remains the same -->
+            <li>
+                <div>
+                    <span class="status status-completed"></span>
+                    Order Placed
+                    <span class="time-info">10:00 AM</span>
+                </div>
+                <ul>
+                    <li>
+                        <div>
+                            <span class="status status-completed"></span>
+                            Payment Processing
+                            <span class="time-info">10:02 AM</span>
+                        </div>
+                        <ul>
+                            <li>
+                                <div>
+                                    <span class="status status-completed"></span>
+                                    Payment Verified
+                                    <span class="time-info">10:05 AM</span>
+                                </div>
+                            </li>
+                        </ul>
+                    </li>
+                    <li>
+                        <div>
+                            <span class="status status-processing"></span>
+                            Order Processing
+                            <span class="time-info">10:10 AM</span>
+                        </div>
+                        <ul>
+                            <li>
+                                <div>
+                                    <span class="status status-processing"></span>
+                                    Warehouse Processing
+                                    <span class="time-info">10:15 AM</span>
+                                </div>
+                                <ul>
+                                    <li>
+                                        <div>
+                                            <span class="status status-pending"></span>
+                                            Picking Items
+                                            <span class="time-info">Pending</span>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <div>
+                                            <span class="status status-pending"></span>
+                                            Quality Check
+                                            <span class="time-info">Pending</span>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <div>
+                                            <span class="status status-pending"></span>
+                                            Packaging
+                                            <span class="time-info">Pending</span>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </li>
+                    <li>
+                        <div>
+                            <span class="status status-pending"></span>
+                            Shipping
+                            <span class="time-info">Pending</span>
+                        </div>
+                        <ul>
+                            <li>
+                                <div>
+                                    <span class="status status-pending"></span>
+                                    Label Creation
+                                    <span class="time-info">Pending</span>
+                                </div>
+                            </li>
+                            <li>
+                                <div>
+                                    <span class="status status-pending"></span>
+                                    Carrier Pickup
+                                    <span class="time-info">Pending</span>
+                                </div>
+                            </li>
+                            <li>
+                                <div>
+                                    <span class="status status-pending"></span>
+                                    In Transit
+                                    <span class="time-info">Pending</span>
+                                </div>
+                            </li>
+                            <li>
+                                <div>
+                                    <span class="status status-pending"></span>
+                                    Delivered
+                                    <span class="time-info">Pending</span>
+                                </div>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+
+        <div class="order-summary">
+            <div class="summary-header">
+                <div class="order-number">#ORD-2024-1234</div>
+                <div class="status status-processing"></div>
+            </div>
+
+            <div class="estimated-delivery">
+                <div class="delivery-date">Estimated Delivery: Jan 22, 2024</div>
+                <div class="delivery-info">Your package is being processed</div>
+            </div>
+
+            <div class="progress-stats">
+                <div class="stat-card">
+                    <div class="stat-value">3</div>
+                    <div class="stat-label">COMPLETED</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">2</div>
+                    <div class="stat-label">IN PROGRESS</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">7</div>
+                    <div class="stat-label">PENDING</div>
+                </div>
+            </div>
+
+            <div class="progress-bar">
+                <div class="progress-fill"></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
