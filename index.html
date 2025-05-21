@@ -2,7 +2,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Document</title>
+    <title>Furniture Locations Map - PDF Export</title>
     <style>
       * {
         box-sizing: border-box;
@@ -52,6 +52,45 @@
         height: 100%;
       }
 
+      .controls {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 1000;
+        background: white;
+        padding: 10px;
+        border-radius: 4px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .controls button {
+        padding: 8px 16px;
+        background-color: #4285f4;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+      }
+
+      .controls button:hover {
+        background-color: #3367d6;
+      }
+
+      .controls button:disabled {
+        background-color: #cccccc;
+        cursor: not-allowed;
+      }
+
+      #status {
+        margin-top: 5px;
+        font-size: 14px;
+        color: #555;
+      }
+
       @media (max-width: 768px) {
         .container {
           flex-direction: column;
@@ -68,6 +107,58 @@
           height: calc(100vh - 200px);
         }
       }
+
+      /* Page break for separate list PDF */
+      .page-break {
+        page-break-after: always;
+      }
+
+      #loading {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 2000;
+        justify-content: center;
+        align-items: center;
+      }
+
+      #loading-content {
+        background: white;
+        padding: 20px;
+        border-radius: 5px;
+        text-align: center;
+      }
+
+      .spinner {
+        border: 5px solid #f3f3f3;
+        border-top: 5px solid #3498db;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 15px;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Custom marker label style */
+      .marker-label {
+        color: white;
+        font-size: 12px;
+        font-weight: bold;
+        text-align: center;
+      }
     </style>
   </head>
   <body>
@@ -78,6 +169,25 @@
       </div>
       <div id="map"></div>
     </div>
+
+    <div class="controls">
+      <button id="downloadBtn">Download Map as PDF</button>
+      <button id="downloadListBtn">Download List as PDF</button>
+      <button id="downloadBothBtn">Download Complete PDF</button>
+      <div id="status"></div>
+    </div>
+
+    <div id="loading">
+      <div id="loading-content">
+        <div class="spinner"></div>
+        <p>Generating PDF...</p>
+      </div>
+    </div>
+
+    <!-- Load external libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
     <script>
       let map;
       const locations = [
@@ -145,12 +255,12 @@
           lat: 22.902138295246967,
           lng: 88.41837488219159,
           title: "Furnistyle",
-        }, //
+        },
         {
           lat: 22.783168058018106,
           lng: 88.64502875307325,
           title: "Anushka Furniture",
-        }, //
+        },
         {
           lat: 22.36959967711778,
           lng: 88.26747468636994,
@@ -165,12 +275,12 @@
           lat: 22.730698169317485,
           lng: 88.37310742906388,
           title: "Sarada Enterprise",
-        }, //
+        },
         {
           lat: 22.552999464443584,
           lng: 88.25954220306306,
           title: "Furniture House",
-        }, //
+        },
         { lat: 23.559138066485083, lng: 87.31328587995714, title: "SAJAWAT" },
         {
           lat: 22.605459105778127,
@@ -182,7 +292,6 @@
           lng: 88.42976631109383,
           title: "SONALI FURNITURE",
         },
-        { lat: 0, lng: 0, title: "MADONA FURNITURE" },
         {
           lat: 23.783656174669115,
           lng: 88.10563085025018,
@@ -217,7 +326,7 @@
           lat: 24.599152312728194,
           lng: 88.03988608591284,
           title: "GRIHOSAJ FURNITURE",
-        }, //
+        },
         {
           lat: 22.930141705739015,
           lng: 88.39927944062626,
@@ -262,8 +371,7 @@
           lat: 23.73655983052315,
           lng: 86.81482114634484,
           title: "BABA FURNITURE",
-        }, //
-        { lat: 0, lng: 0, title: "Shree Guru Enterprise" },
+        },
         {
           lat: 22.3738932425382,
           lng: 88.42427905014638,
@@ -284,43 +392,297 @@
           lng: 87.79132034890591,
           title: "POPULAR STEEL FURNITURE",
         },
-        { lat: 0, lng: 0, title: "Furniture Point" },
       ];
 
+      // Filter out invalid coordinates
+      const validLocations = locations.filter(
+        (loc) => loc.lat !== 0 && loc.lng !== 0
+      );
+
+      // Function to show loading state
+      function showLoading() {
+        document.getElementById("loading").style.display = "flex";
+        document.getElementById("downloadBtn").disabled = true;
+        document.getElementById("downloadListBtn").disabled = true;
+        document.getElementById("downloadBothBtn").disabled = true;
+      }
+
+      // Function to hide loading state
+      function hideLoading() {
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("downloadBtn").disabled = false;
+        document.getElementById("downloadListBtn").disabled = false;
+        document.getElementById("downloadBothBtn").disabled = false;
+      }
+
       function initMap() {
+        // Find center of valid locations
+        const center = validLocations.reduce(
+          (acc, loc) => {
+            acc.lat += loc.lat / validLocations.length;
+            acc.lng += loc.lng / validLocations.length;
+            return acc;
+          },
+          { lat: 0, lng: 0 }
+        );
+
+        // Create map
         map = new google.maps.Map(document.getElementById("map"), {
-          zoom: 5,
-          center: { lat: 20.5937, lng: 78.9629 }, // Centered on India
+          zoom: 8,
+          center: center,
         });
 
+        // Create bounds object to fit all markers
+        const bounds = new google.maps.LatLngBounds();
+
+        // Populate sidebar list and add markers
         const locationListEl = document.getElementById("locationList");
 
-        locations.forEach((loc, index) => {
-          // Skip invalid coordinates (optional)
-          if (loc.lat === 0 && loc.lng === 0) return;
+        validLocations.forEach((loc, index) => {
+          // Create a custom marker with number label
+          const markerLabel = {
+            text: (index + 1).toString(),
+            color: "white",
+            fontWeight: "bold",
+          };
 
           const marker = new google.maps.Marker({
             position: { lat: loc.lat, lng: loc.lng },
             map,
+            label: markerLabel,
             title: loc.title,
           });
 
+          // Add info window
+          const infoWindow = new google.maps.InfoWindow({
+            content: `<strong>#${index + 1}: ${loc.title}</strong>`,
+          });
+
+          marker.addListener("click", () => {
+            infoWindow.open(map, marker);
+          });
+
+          // Extend bounds to include this location
+          bounds.extend(marker.getPosition());
+
+          // Add to sidebar list with number
           const li = document.createElement("li");
-          li.textContent = loc.title;
+          li.textContent = `${index + 1}. ${loc.title}`;
           li.addEventListener("click", () => {
             map.setZoom(14);
             map.panTo(marker.getPosition());
+            infoWindow.open(map, marker);
           });
 
           locationListEl.appendChild(li);
         });
+
+        // Fit map to show all markers
+        map.fitBounds(bounds);
+
+        // Wait for map to be fully loaded
+        google.maps.event.addListenerOnce(map, "idle", function () {
+          document.getElementById("status").textContent =
+            "Map loaded and ready for PDF export";
+          // Enable download buttons
+          document.getElementById("downloadBtn").disabled = false;
+          document.getElementById("downloadListBtn").disabled = false;
+          document.getElementById("downloadBothBtn").disabled = false;
+        });
+
+        // Add event listeners for buttons
+        document
+          .getElementById("downloadBtn")
+          .addEventListener("click", captureMapOnly);
+        document
+          .getElementById("downloadListBtn")
+          .addEventListener("click", captureListOnly);
+        document
+          .getElementById("downloadBothBtn")
+          .addEventListener("click", captureComplete);
+      }
+
+      // Function to capture just the map area
+      async function captureMapOnly() {
+        showLoading();
+        try {
+          const mapElement = document.getElementById("map");
+          document.getElementById("status").textContent = "Capturing map...";
+
+          const canvas = await html2canvas(mapElement, {
+            useCORS: true,
+            allowTaint: true,
+            logging: false,
+            scale: 2, // Higher quality
+          });
+
+          document.getElementById("status").textContent = "Creating PDF...";
+
+          // Create PDF
+          const { jsPDF } = window.jspdf;
+          const pdf = new jsPDF("landscape", "mm", "a4");
+
+          // Calculate dimensions to fit with some margin
+          const imgWidth = 277; // A4 landscape width with margins
+          const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+          // Add to PDF
+          pdf.addImage(
+            canvas.toDataURL("image/jpeg", 1.0),
+            "JPEG",
+            10,
+            10, // X, Y position with margin
+            imgWidth,
+            imgHeight
+          );
+
+          // Save the PDF
+          pdf.save("furniture_map.pdf");
+          document.getElementById("status").textContent =
+            "PDF downloaded successfully!";
+        } catch (error) {
+          console.error("Error generating PDF:", error);
+          document.getElementById("status").textContent =
+            "Error: " + error.message;
+        } finally {
+          hideLoading();
+        }
+      }
+
+      // Function to capture just the locations list
+      async function captureListOnly() {
+        showLoading();
+        try {
+          const listElement = document.querySelector(".sidebar");
+          document.getElementById("status").textContent = "Capturing list...";
+
+          const canvas = await html2canvas(listElement, {
+            useCORS: true,
+            allowTaint: true,
+            logging: false,
+            scale: 2, // Higher quality
+          });
+
+          document.getElementById("status").textContent = "Creating PDF...";
+
+          // Create PDF (portrait for list)
+          const { jsPDF } = window.jspdf;
+          const pdf = new jsPDF("portrait", "mm", "a4");
+
+          // Calculate dimensions to fit with some margin
+          const imgWidth = 190; // A4 portrait width with margins
+          const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+          // Add to PDF
+          pdf.addImage(
+            canvas.toDataURL("image/jpeg", 1.0),
+            "JPEG",
+            10,
+            10, // X, Y position with margin
+            imgWidth,
+            imgHeight
+          );
+
+          // Add title
+          pdf.setFontSize(16);
+          pdf.text("Furniture Locations List", 105, 10, { align: "center" });
+
+          // Save the PDF
+          pdf.save("furniture_locations_list.pdf");
+          document.getElementById("status").textContent =
+            "List PDF downloaded successfully!";
+        } catch (error) {
+          console.error("Error generating PDF:", error);
+          document.getElementById("status").textContent =
+            "Error: " + error.message;
+        } finally {
+          hideLoading();
+        }
+      }
+
+      // Function to capture both map and list as a complete PDF
+      async function captureComplete() {
+        showLoading();
+        try {
+          document.getElementById("status").textContent =
+            "Creating complete PDF...";
+
+          // Create a new document for text list
+          const { jsPDF } = window.jspdf;
+          const pdf = new jsPDF("landscape", "mm", "a4");
+
+          // First add title
+          pdf.setFontSize(18);
+          pdf.text("Furniture Locations", pdf.internal.pageSize.width / 2, 20, {
+            align: "center",
+          });
+
+          // Then add the locations list
+          pdf.setFontSize(12);
+          let yPos = 30;
+          validLocations.forEach((loc, i) => {
+            // Check if we need a new page
+            if (yPos > 180) {
+              pdf.addPage();
+              yPos = 20;
+            }
+
+            pdf.text(`${i + 1}. ${loc.title}`, 20, yPos);
+            yPos += 10;
+          });
+
+          // Add a new page for the map
+          pdf.addPage();
+
+          // Now capture the map for the second page
+          const mapElement = document.getElementById("map");
+          const canvas = await html2canvas(mapElement, {
+            useCORS: true,
+            allowTaint: true,
+            logging: false,
+            scale: 2, // Higher quality
+          });
+
+          // Calculate dimensions to fit with some margin
+          const imgWidth = 277; // A4 landscape width with margins
+          const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+          // Add to PDF
+          pdf.addImage(
+            canvas.toDataURL("image/jpeg", 1.0),
+            "JPEG",
+            10,
+            10, // X, Y position with margin
+            imgWidth,
+            imgHeight
+          );
+
+          // Add title to map page
+          pdf.setFontSize(14);
+          pdf.text(
+            "Furniture Locations Map",
+            pdf.internal.pageSize.width / 2,
+            10,
+            { align: "center" }
+          );
+
+          // Save the complete PDF
+          pdf.save("furniture_locations_complete.pdf");
+          document.getElementById("status").textContent =
+            "Complete PDF downloaded successfully!";
+        } catch (error) {
+          console.error("Error generating PDF:", error);
+          document.getElementById("status").textContent =
+            "Error: " + error.message;
+        } finally {
+          hideLoading();
+        }
       }
     </script>
 
-    <!-- Load Google Maps API (replace YOUR_API_KEY) -->
+    <!-- Load Google Maps API -->
     <script
       src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCG0XnRZHkjubgoxlvvNxAHRqO0nDWT4OE&callback=initMap"
-      async
       defer
     ></script>
   </body>
